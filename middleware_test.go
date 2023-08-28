@@ -97,4 +97,34 @@ func TestMiddleware(t *testing.T) {
 		str := b.String()
 		assert.Contains(t, str, `"test":"test"`)
 	})
+
+	t.Run("should use enricherAfter", func(t *testing.T) {
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		b := &bytes.Buffer{}
+
+		l := lecho.New(b)
+		m := lecho.Middleware(lecho.Config{
+			Logger: l,
+			EnricherAfter: func(c echo.Context, logger zerolog.Context) zerolog.Context {
+				return logger.Str("test", "test")
+			},
+		})
+
+		next := func(c echo.Context) error {
+			return nil
+		}
+
+		handler := m(next)
+		err := handler(c)
+
+		assert.NoError(t, err, "should not return error")
+
+		str := b.String()
+		assert.Contains(t, str, `"test":"test"`)
+	})
 }
